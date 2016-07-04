@@ -3,7 +3,7 @@
 
 This source code implements the full pipeline of our roto++ software, which includes the fully functional interactive tool and the proposed shape manifold solver.
 
-- [Project, Paper, Video, User Guide and Benchmark](http://visual.cs.ucl.ac.uk/pubs/rotopp)
+- [Project, Paper, Video and Benchmark](http://visual.cs.ucl.ac.uk/pubs/rotopp)
 - [Instructions](https://github.com/vinben/Rotopp/wiki)
 
 ### Citation
