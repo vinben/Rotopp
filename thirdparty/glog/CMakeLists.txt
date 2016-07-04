@@ -1,0 +1,6 @@
+INCLUDE_DIRECTORIES(
+  src
+  ../gflags
+)
+
+ADD_SUBDIRECTORY(src)

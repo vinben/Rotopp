@@ -1,0 +1,33 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/select.png</file>
+        <file>images/drag.png</file>
+        <file>images/rotoDrag.png</file>
+        <file>images/move.png</file>
+        <file>images/poly.png</file>
+        <file>images/eye.png</file>
+        <file>images/delete.png</file>
+        <file>images/modify.png</file>
+        <file>images/clear.png</file>
+        <file>images/rotate.png</file>
+        <file>images/key.png</file>
+        <file>images/zoom.png</file>
+        <file>images/left.png</file>
+        <file>images/right.png</file>
+        <file>images/undo.png</file>
+        <file>images/color.png</file>
+        <file>images/insert.png</file>
+        <file>images/add.png</file>
+        <file>images/activeContour.png</file>
+        <file>images/copy.png</file>
+        <file>images/1.png</file>
+        <file>images/2.png</file>
+        <file>images/3.png</file>
+        <file>images/4.png</file>
+        <file>images/unkey.png</file>
+        <file>images/imgProc.png</file>
+        <file>images/bck.png</file>
+        <file>images/fwd.png</file>
+        <file>images/stop.png</file>
+    </qresource>
+</RCC>

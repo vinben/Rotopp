@@ -1,0 +1,297 @@
+diff --git b/src/third_party/glog/src/base/commandlineflags.h a/src/third_party/glog/src/base/commandlineflags.h
+index c8d5089..529540e 100644
+--- b/src/third_party/glog/src/base/commandlineflags.h
++++ a/src/third_party/glog/src/base/commandlineflags.h
+@@ -48,7 +48,7 @@
+ #ifndef BASE_COMMANDLINEFLAGS_H__
+ #define BASE_COMMANDLINEFLAGS_H__
+ 
+-#include "config.h"
++#include "../config.h"
+ #include <string>
+ #include <string.h>               // for memchr
+ #include <stdlib.h>               // for getenv
+diff --git b/src/third_party/glog/src/base/mutex.h a/src/third_party/glog/src/base/mutex.h
+index 37527d5..36fc55c 100644
+--- b/src/third_party/glog/src/base/mutex.h
++++ a/src/third_party/glog/src/base/mutex.h
+@@ -102,7 +102,7 @@
+ #ifndef GOOGLE_MUTEX_H_
+ #define GOOGLE_MUTEX_H_
+ 
+-#include "config.h"           // to figure out pthreads support
++#include "../config.h"           // to figure out pthreads support
+ 
+ #if defined(NO_THREADS)
+   typedef int MutexType;      // to keep a lock-count
+diff --git b/src/third_party/glog/src/glog/logging.h a/src/third_party/glog/src/glog/logging.h
+index 2b3fbd3..247c046 100644
+--- b/src/third_party/glog/src/glog/logging.h
++++ a/src/third_party/glog/src/glog/logging.h
+@@ -33,6 +33,10 @@
+ // Pretty much everybody needs to #include this file so that they can
+ // log various happenings.
+ //
++#ifdef WIN32
++#  include "windows/glog/logging.h"
++#else  // WIN32
++
+ #ifndef _LOGGING_H_
+ #define _LOGGING_H_
+ 
+@@ -81,7 +85,7 @@
+ #include <inttypes.h>           // a third place for uint16_t or u_int16_t
+ #endif
+ 
+-#if 0
++#if 1
+ #include <gflags/gflags.h>
+ #endif
+ 
+@@ -1601,3 +1605,5 @@ GOOGLE_GLOG_DLL_DECL void InstallFailureWriter(
+ }
+ 
+ #endif // _LOGGING_H_
++
++#endif  // WIN32
+diff --git b/src/third_party/glog/src/glog/raw_logging.h a/src/third_party/glog/src/glog/raw_logging.h
+index 65278f6..b030f7f 100644
+--- b/src/third_party/glog/src/glog/raw_logging.h
++++ a/src/third_party/glog/src/glog/raw_logging.h
+@@ -33,6 +33,10 @@
+ // acquire any locks, and can therefore be used by low-level memory
+ // allocation and synchronization code.
+ 
++#ifdef WIN32
++#  include "windows/glog/raw_logging.h"
++#else  // WIN32
++
+ #ifndef BASE_RAW_LOGGING_H_
+ #define BASE_RAW_LOGGING_H_
+ 
+@@ -183,3 +187,5 @@ GOOGLE_GLOG_DLL_DECL void RawLog__SetLastTime(const struct tm& t, int usecs);
+ }
+ 
+ #endif  // BASE_RAW_LOGGING_H_
++
++#endif  // WIN32
+diff --git b/src/third_party/glog/src/logging.cc a/src/third_party/glog/src/logging.cc
+index 81d966f..5e2ce61 100644
+--- b/src/third_party/glog/src/logging.cc
++++ a/src/third_party/glog/src/logging.cc
+@@ -34,6 +34,7 @@
+ #include <assert.h>
+ #include <iomanip>
+ #include <string>
++#include <algorithm>
+ #ifdef HAVE_UNISTD_H
+ # include <unistd.h>  // For _exit.
+ #endif
+@@ -301,7 +302,7 @@ WORD GetColorAttribute(GLogColor color) {
+ #else
+ 
+ // Returns the ANSI color code for the given color.
+-const char* GetAnsiColorCode(GLogColor color) {
++static const char* GetAnsiColorCode(GLogColor color) {
+   switch (color) {
+   case COLOR_RED:     return "1";
+   case COLOR_GREEN:   return "2";
+@@ -1454,7 +1455,7 @@ static void logging_fail() {
+ #if defined(_DEBUG) && defined(_MSC_VER)
+   // When debugging on windows, avoid the obnoxious dialog and make
+   // it possible to continue past a LOG(FATAL) in the debugger
+-  _asm int 3
++  __debugbreak();
+ #else
+   abort();
+ #endif
+@@ -1663,6 +1664,8 @@ void LogToStderr() {
+ namespace base {
+ namespace internal {
+ 
++namespace {
++
+ bool GetExitOnDFatal() {
+   MutexLock l(&log_mutex);
+   return exit_on_dfatal;
+@@ -1683,6 +1686,8 @@ void SetExitOnDFatal(bool value) {
+   exit_on_dfatal = value;
+ }
+ 
++}  // namespace
++
+ }  // namespace internal
+ }  // namespace base
+ 
+diff --git b/src/third_party/glog/src/utilities.cc a/src/third_party/glog/src/utilities.cc
+index f31c7c7..1e8836d 100644
+--- b/src/third_party/glog/src/utilities.cc
++++ a/src/third_party/glog/src/utilities.cc
+@@ -84,7 +84,7 @@ static void DebugWriteToStderr(const char* data, void *) {
+   }
+ }
+ 
+-void DebugWriteToString(const char* data, void *arg) {
++static void DebugWriteToString(const char* data, void *arg) {
+   reinterpret_cast<string*>(arg)->append(data);
+ }
+ 
+diff --git b/src/third_party/glog/src/utilities.h a/src/third_party/glog/src/utilities.h
+index 5f79968..4f41c92 100644
+--- b/src/third_party/glog/src/utilities.h
++++ a/src/third_party/glog/src/utilities.h
+@@ -101,7 +101,9 @@
+ // correctly when GetStackTrace() is called with max_depth == 0.
+ // Some code may do that.
+ 
+-#if defined(HAVE_LIB_UNWIND)
++#if defined(__MINGW32__) || defined(__FreeBSD__)
++# undef STACKTRACE_H
++#elif defined(HAVE_LIB_UNWIND)
+ # define STACKTRACE_H "stacktrace_libunwind-inl.h"
+ #elif !defined(NO_FRAME_POINTER)
+ # if defined(__i386__) && __GNUC__ >= 2
+diff --git b/src/third_party/glog/src/vlog_is_on.cc a/src/third_party/glog/src/vlog_is_on.cc
+index 8a79df5..cd7fc19 100644
+--- b/src/third_party/glog/src/vlog_is_on.cc
++++ a/src/third_party/glog/src/vlog_is_on.cc
+@@ -62,6 +62,8 @@ _START_GOOGLE_NAMESPACE_
+ 
+ namespace glog_internal_namespace_ {
+ 
++namespace {
++
+ // Implementation of fnmatch that does not need 0-termination
+ // of arguments and does not allocate any memory,
+ // but we only support "*" and "?" wildcards, not the "[...]" patterns.
+@@ -95,6 +97,8 @@ GOOGLE_GLOG_DLL_DECL bool SafeFNMatch_(const char* pattern,
+   }
+ }
+ 
++}  // namespace
++
+ }  // namespace glog_internal_namespace_
+ 
+ using glog_internal_namespace_::SafeFNMatch_;
+diff --git b/src/third_party/glog/src/windows/config.h a/src/third_party/glog/src/windows/config.h
+index 2d23fb0..9fb3cc5 100644
+--- b/src/third_party/glog/src/windows/config.h
++++ a/src/third_party/glog/src/windows/config.h
+@@ -1,5 +1,8 @@
+ /* src/config.h.in.  Generated from configure.ac by autoheader.  */
+ 
++/* define if you have google gflags library */
++#define HAVE_LIB_GFLAGS 1
++
+ /* Namespace for Google classes */
+ #define GOOGLE_NAMESPACE google
+ 
+diff --git b/src/third_party/glog/src/windows/glog/logging.h a/src/third_party/glog/src/windows/glog/logging.h
+index bab8c61..6e9c922 100644
+--- b/src/third_party/glog/src/windows/glog/logging.h
++++ a/src/third_party/glog/src/windows/glog/logging.h
+@@ -54,7 +54,7 @@
+ 
+ // Annoying stuff for windows -- makes sure clients can import these functions
+ #ifndef GOOGLE_GLOG_DLL_DECL
+-# if defined(_WIN32) && !defined(__CYGWIN__)
++# if defined(_WIN32) && !defined(__CYGWIN__) && !defined(__MINGW32__)
+ #   define GOOGLE_GLOG_DLL_DECL  __declspec(dllimport)
+ # else
+ #   define GOOGLE_GLOG_DLL_DECL
+@@ -85,13 +85,22 @@
+ #include <inttypes.h>           // a third place for uint16_t or u_int16_t
+ #endif
+ 
+-#if 0
++#if 1
+ #include <gflags/gflags.h>
+ #endif
+ 
++#ifdef __MINGW32__
++#  include <stdlib.h>
++#  include <unistd.h>
++#  include <stdint.h>             // the normal place uint16_t is defined
++#  include <sys/types.h>          // the normal place u_int16_t is defined
++#  include <inttypes.h>           // a third place for uint16_t or u_int16_t
++#  define _exit(x) exit(x)
++#endif
++
+ namespace google {
+ 
+-#if 0      // the C99 format
++#if defined(__MINGW32__)      // the C99 format
+ typedef int32_t int32;
+ typedef uint32_t uint32;
+ typedef int64_t int64;
+@@ -101,7 +110,7 @@ typedef int32_t int32;
+ typedef u_int32_t uint32;
+ typedef int64_t int64;
+ typedef u_int64_t uint64;
+-#elif 1    // the windows (vc7) format
++#elif defined(_MSC_VER)    // the windows (vc7) format
+ typedef __int32 int32;
+ typedef unsigned __int32 uint32;
+ typedef __int64 int64;
+diff --git b/src/third_party/glog/src/windows/port.cc a/src/third_party/glog/src/windows/port.cc
+index bfa6e70..c16111a 100644
+--- b/src/third_party/glog/src/windows/port.cc
++++ a/src/third_party/glog/src/windows/port.cc
+@@ -55,6 +55,7 @@ int safe_vsnprintf(char *str, size_t size, const char *format, va_list ap) {
+   return _vsnprintf(str, size-1, format, ap);
+ }
+ 
++#ifndef __MINGW64__
+ int snprintf(char *str, size_t size, const char *format, ...) {
+   va_list ap;
+   va_start(ap, format);
+@@ -62,3 +63,4 @@ int snprintf(char *str, size_t size, const char *format, ...) {
+   va_end(ap);
+   return r;
+ }
++#endif
+diff --git b/src/third_party/glog/src/windows/port.h a/src/third_party/glog/src/windows/port.h
+index 24d7677..4879cbf 100644
+--- b/src/third_party/glog/src/windows/port.h
++++ a/src/third_party/glog/src/windows/port.h
+@@ -129,6 +129,9 @@ extern int safe_vsnprintf(char *str, size_t size,
+ typedef int pid_t;
+ #define getpid  _getpid
+ 
++#include <BaseTsd.h>
++typedef SSIZE_T ssize_t;
++
+ #endif  // _MSC_VER
+ 
+ // ----------------------------------- THREADS
+@@ -140,13 +143,30 @@ enum { PTHREAD_ONCE_INIT = 0 };   // important that this be 0! for SpinLock
+ #define pthread_equal(pthread_t_1, pthread_t_2)  ((pthread_t_1)==(pthread_t_2))
+ 
+ inline struct tm* localtime_r(const time_t* timep, struct tm* result) {
++#if __MINGW32__
++   struct tm *local_result;
++   local_result = localtime (timep);
++
++   if (local_result == NULL || result == NULL)
++     return NULL;
++
++   memcpy (result, local_result, sizeof (result));
++
++   return result;
++#else
+   localtime_s(result, timep);
+   return result;
++#endif
+ }
+ 
+ inline char* strerror_r(int errnum, char* buf, size_t buflen) {
++#if __MINGW32__
++  strncpy(buf, "Not implemented yet", buflen);
++  return buf;
++#else
+   strerror_s(buf, buflen, errnum);
+   return buf;
++#endif
+ }
+ 
+ #ifndef __cplusplus
