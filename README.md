@@ -6,6 +6,8 @@ This source code implements the full pipeline of our roto++ software, which incl
 - [Project, Paper, Video and Benchmark](http://visual.cs.ucl.ac.uk/pubs/rotopp)
 - [Instructions](https://github.com/vinben/Rotopp/wiki)
 
+[![Roto++: Accelerating Professional Rotoscoping Using Shape Manifolds](http://img.youtube.com/vi/L1oIdrhUHk8/0.jpg)](http://www.youtube.com/watch?v=L1oIdrhUHk8 "Roto++: Accelerating Professional Rotoscoping Using Shape Manifolds")
+
 ### Citation
 
 If you use any part of this code in an academic context, please cite the following publication:
